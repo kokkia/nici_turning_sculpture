@@ -95,6 +95,16 @@ void loop() {
   
     //出力計算
     double u = motor[0].position_control();
+
+    if( c=='o' ){
+      u = 2.0;
+    }
+    else if( c=='c'){
+      u = -2.0;
+    }
+    else if( c=='e'){
+      u = 0.0;
+    }
     motor[0].drive(u);
 //    motor[0].drive(sin_wave.output);
 
