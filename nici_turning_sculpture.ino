@@ -4,7 +4,8 @@
 #define DEBUG 1
 
 //wave
-kal::wave sin_wave(0.0,PI/2,0.5,SIN);
+//kal::wave wave0(0.0,PI/2,1.0,RECTANGLE);
+kal::wave wave0(0.0,PI/2,0.1,SIN);
 
 //robot
 #define MOTOR_NUM 1
@@ -43,7 +44,7 @@ void setup() {
   motor[0].PWM_setup(GPIO_NUM_12,0);//PWMピン設定
   motor[0].encoder_setup(PCNT_UNIT_0,GPIO_NUM_36,GPIO_NUM_39);//エンコーダカウンタ設定
   motor[0].set_fb_v_param(10.0,1.0,0.0);
-  motor[0].set_fb_param(30,0.5,5.0);
+  motor[0].set_fb_param(40,0.5,5.0);
   motor[0].set_fb_cc_param(50.0,0.0);
 
 //  //motor2
@@ -53,14 +54,6 @@ void setup() {
 //  motor[1].set_fb_v_param(10.0,1.0,0.0);
 //  motor[1].set_fb_param(30,0.0,5.0);
 //  motor[1].set_fb_cc_param(50.0,0.0);
-//  //motor3
-//  motor[2].GPIO_setup(GPIO_NUM_5,GPIO_NUM_21);//方向制御ピン設定
-//  motor[2].PWM_setup(GPIO_NUM_13,0);//PWMピン設定
-//  motor[2].encoder_setup(PCNT_UNIT_2,GPIO_NUM_32,GPIO_NUM_33);//エンコーダカウンタ設定
-//  //motor4
-//  motor[3].GPIO_setup(GPIO_NUM_22,GPIO_NUM_23);//方向制御ピン設定
-//  motor[3].PWM_setup(GPIO_NUM_12,0);//PWMピン設定
-//  motor[3].encoder_setup(PCNT_UNIT_3,GPIO_NUM_25,GPIO_NUM_26);//エンコーダカウンタ設定
 
 //UDP通信設定
   udp0.set_udp(esp_ssid,esp_pass);
@@ -89,12 +82,13 @@ void loop() {
     //------------------------------------------------------------------------------------//
     
     //目標値計算
-    sin_wave.update();
-    motor[0].ref.q = sin_wave.output;
+    wave0.update();
+    motor[0].ref.q = wave0.output;
     dtheta_ref[0].update(motor[0].ref.q,motor[0].ref.dq);
   
     //出力計算
     double u = motor[0].position_control();
+//    double u = wave0.output;
 
     if( c=='o' ){
       u = 2.0;
@@ -106,7 +100,7 @@ void loop() {
       u = 0.0;
     }
     motor[0].drive(u);
-//    motor[0].drive(sin_wave.output);
+//    motor[0].drive(wave0.output);
 
 //  udp0.send_char(',');
 //  delay(100);
