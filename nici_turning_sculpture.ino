@@ -1,19 +1,21 @@
 #include "kal/kal.h"
-//#include<Wire.h>
-
 #define DEBUG 1
 
 //wave
 //kal::wave wave0(0.0,PI/2,1.0,RECTANGLE);
-kal::wave wave0(0.0,PI/2,0.1,SIN);
+kal::wave wave0(0.0,PI/2,1.0/360.0,TRIANGLE);
 
-//robot
+//motor
 #define MOTOR_NUM 1
 kal::nxtmotor motor[MOTOR_NUM];
 
 //differentiator
 kal::Diff<double> dtheta_st[MOTOR_NUM];
 kal::Diff<double> dtheta_ref[MOTOR_NUM];
+
+//touch switch
+bool touch_switch = 0;
+#define TOUCH_SWITCH_PIN GPIO_NUM_32
 
 //udp通信
 kal::udp_for_esp32<kal::q_data> udp0(ISOLATED_NETWORK);
@@ -42,8 +44,8 @@ void setup() {
   //motor1の設定
   motor[0].GPIO_setup(GPIO_NUM_25,GPIO_NUM_26);//方向制御ピン設定
   motor[0].PWM_setup(GPIO_NUM_12,0);//PWMピン設定
-  motor[0].encoder_setup(PCNT_UNIT_0,GPIO_NUM_36,GPIO_NUM_39);//エンコーダカウンタ設定
-  motor[0].set_fb_v_param(10.0,1.0,0.0);
+  motor[0].encoder_setup(PCNT_UNIT_0,GPIO_NUM_39,GPIO_NUM_36);//エンコーダカウンタ設定
+  motor[0].set_fb_v_param(60.0,0.0,5.0);
   motor[0].set_fb_param(40,0.5,5.0);
   motor[0].set_fb_cc_param(50.0,0.0);
 
@@ -54,6 +56,9 @@ void setup() {
 //  motor[1].set_fb_v_param(10.0,1.0,0.0);
 //  motor[1].set_fb_param(30,0.0,5.0);
 //  motor[1].set_fb_cc_param(50.0,0.0);
+
+//タッチスイッチの設定
+  pinMode(TOUCH_SWITCH_PIN,INPUT);
 
 //UDP通信設定
   udp0.set_udp(esp_ssid,esp_pass);
@@ -79,6 +84,10 @@ void loop() {
     for(int i=0;i<MOTOR_NUM;i++){
       dtheta_st[i].update(motor[i].state.q,motor[i].state.dq);  
     }
+
+    touch_switch = digitalRead(TOUCH_SWITCH_PIN);  
+
+    
     //------------------------------------------------------------------------------------//
     
     //目標値計算
@@ -100,6 +109,7 @@ void loop() {
       u = 0.0;
     }
     motor[0].drive(u);
+//    motor[0].drive(-2.0);
 //    motor[0].drive(wave0.output);
 
 //  udp0.send_char(',');
@@ -110,7 +120,10 @@ void loop() {
       Serial.print(motor[i].ref.q * RAD2DEG);
       Serial.print(",");
       Serial.print(motor[i].state.q * RAD2DEG);     
-      Serial.print(",");      
+      Serial.print(",");
+      Serial.print(motor[i].output);     
+
+//      Serial.print(touch_switch);      
     }
     Serial.println();
 #endif
