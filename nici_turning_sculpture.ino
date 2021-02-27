@@ -1,36 +1,35 @@
 #include "kal/kal.h"
 #define DEBUG 1
 
-//wave
+//waveの形定義
 kal::wave wave0(0.0,PI/2,1.0/360.0,TRIANGLE);
 //kal::wave wave0(0.0,PI/6,1.0/60.0,TRIANGLE);
 kal::wave wave_pwm(0.0,3.0,0.1,SIN);
 
-
-//motor
+//motorの定義
 #define MOTOR_NUM 1
 kal::nxtmotor motor[MOTOR_NUM];
 
-//differentiator
+//differentiator微分器の定義
 kal::Diff<double> dtheta_st[MOTOR_NUM];
 kal::Diff<double> dtheta_ref[MOTOR_NUM];
 
-//touch switch
+//touch switchタッチスイッチの定義
 bool touch_switch = 0;
 #define TOUCH_SWITCH_PIN GPIO_NUM_32
 
-//udp通信
+//udp通信の定義
 kal::udp_for_esp32<kal::q_data> udp0(ISOLATED_NETWORK);
 
-//時間管理//@todo: freeRTOSの導入検討
+//時間管理
 double t = 0.0;//time
 bool timer_flag = 0;
 
-//timer関連
+//timerの設定
 hw_timer_t * timer = NULL;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
-void IRAM_ATTR onTimer() {  /* this function must be placed in IRAM */
+void IRAM_ATTR onTimer() {//時間計測
   portENTER_CRITICAL_ISR(&timerMux);
   //control---------------------------------------------------------------------------------------------------------------------------/
   t += Ts;
@@ -51,7 +50,7 @@ void setup() {
   motor[0].set_fb_param(40,0.5,5.0);
   motor[0].set_fb_cc_param(50.0,0.0);
 
-//  //motor2
+//  //motor2 2個目のモータを使う場合
 //  motor[1].GPIO_setup(GPIO_NUM_16,GPIO_NUM_17);//方向制御ピン設定
 //  motor[1].PWM_setup(GPIO_NUM_15,0);//PWMピン設定
 //  motor[1].encoder_setup(PCNT_UNIT_1,GPIO_NUM_34,GPIO_NUM_35);//エンコーダカウンタ設定
@@ -78,18 +77,16 @@ void loop() {
   if(timer_flag){//制御周期
     timer_flag = 0;
 
-    //状態取得---------------------------------------------------------------------------//
-  
+    //センサの値取得---------------------------------------------------------------------------//
+    //角度センサ
     for(int i=0;i<MOTOR_NUM;i++){
       motor[i].get_angle(motor[i].state.q);  
     }
     for(int i=0;i<MOTOR_NUM;i++){
       dtheta_st[i].update(motor[i].state.q,motor[i].state.dq);  
     }
-
+    //タッチスイッチの値取得 1:pushed, 0:not pushed
     touch_switch = digitalRead(TOUCH_SWITCH_PIN);  
-
-    
     //------------------------------------------------------------------------------------//
     
     //目標値計算
@@ -99,7 +96,7 @@ void loop() {
     dtheta_ref[0].update(motor[0].ref.q,motor[0].ref.dq);
   
     //出力計算
-    double u = motor[0].position_control();
+    double u = motor[0].position_control();//pid位置制御
 //    double u = wave_pwm.output;
 
     if( c=='o' ){
