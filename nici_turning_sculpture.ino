@@ -2,8 +2,10 @@
 #define DEBUG 1
 
 //wave
-//kal::wave wave0(0.0,PI/2,1.0,RECTANGLE);
 kal::wave wave0(0.0,PI/2,1.0/360.0,TRIANGLE);
+//kal::wave wave0(0.0,PI/6,1.0/60.0,TRIANGLE);
+kal::wave wave_pwm(0.0,3.0,0.1,SIN);
+
 
 //motor
 #define MOTOR_NUM 1
@@ -43,9 +45,9 @@ void setup() {
   
   //motor1の設定
   motor[0].GPIO_setup(GPIO_NUM_25,GPIO_NUM_26);//方向制御ピン設定
-  motor[0].PWM_setup(GPIO_NUM_12,0);//PWMピン設定
+  motor[0].PWM_setup(GPIO_NUM_12,0,50000,10);//PWMピン設定
   motor[0].encoder_setup(PCNT_UNIT_0,GPIO_NUM_39,GPIO_NUM_36);//エンコーダカウンタ設定
-  motor[0].set_fb_v_param(60.0,0.0,5.0);
+  motor[0].set_fb_v_param(10.0,0.0,5.0);
   motor[0].set_fb_param(40,0.5,5.0);
   motor[0].set_fb_cc_param(50.0,0.0);
 
@@ -92,12 +94,13 @@ void loop() {
     
     //目標値計算
     wave0.update();
+    wave_pwm.update();
     motor[0].ref.q = wave0.output;
     dtheta_ref[0].update(motor[0].ref.q,motor[0].ref.dq);
   
     //出力計算
     double u = motor[0].position_control();
-//    double u = wave0.output;
+//    double u = wave_pwm.output;
 
     if( c=='o' ){
       u = 2.0;
@@ -108,8 +111,9 @@ void loop() {
     else if( c=='e'){
       u = 0.0;
     }
+//    u = -0.5;
+//    motor[0].drive(u);
     motor[0].drive(u);
-//    motor[0].drive(-2.0);
 //    motor[0].drive(wave0.output);
 
 //  udp0.send_char(',');
@@ -121,7 +125,7 @@ void loop() {
       Serial.print(",");
       Serial.print(motor[i].state.q * RAD2DEG);     
       Serial.print(",");
-      Serial.print(motor[i].output);     
+      Serial.print(u);     
 
 //      Serial.print(touch_switch);      
     }
