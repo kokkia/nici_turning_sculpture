@@ -31,10 +31,10 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 void IRAM_ATTR onTimer() {//時間計測
   portENTER_CRITICAL_ISR(&timerMux);
-  //control---------------------------------------------------------------------------------------------------------------------------/
+  //control----------------------------------------------------------------------------//
   t += Ts;
   timer_flag = 1; 
-  //-----------------------------------------------------------------------------------------------------------------------------------/
+  //-----------------------------------------------------------------------------------//
   portEXIT_CRITICAL_ISR(&timerMux);
 }
 
@@ -46,22 +46,18 @@ void setup() {
   motor[0].GPIO_setup(GPIO_NUM_25,GPIO_NUM_26);//方向制御ピン設定
   motor[0].PWM_setup(GPIO_NUM_12,0,50000,10);//PWMピン設定
   motor[0].encoder_setup(PCNT_UNIT_0,GPIO_NUM_39,GPIO_NUM_36);//エンコーダカウンタ設定
-  motor[0].set_fb_v_param(10.0,0.0,5.0);
-  motor[0].set_fb_param(40,0.5,5.0);
-  motor[0].set_fb_cc_param(50.0,0.0);
+  motor[0].set_fb_param(40,0.0,5.0);
 
 //  //motor2 2個目のモータを使う場合
 //  motor[1].GPIO_setup(GPIO_NUM_16,GPIO_NUM_17);//方向制御ピン設定
 //  motor[1].PWM_setup(GPIO_NUM_15,0);//PWMピン設定
 //  motor[1].encoder_setup(PCNT_UNIT_1,GPIO_NUM_34,GPIO_NUM_35);//エンコーダカウンタ設定
-//  motor[1].set_fb_v_param(10.0,1.0,0.0);
 //  motor[1].set_fb_param(30,0.0,5.0);
-//  motor[1].set_fb_cc_param(50.0,0.0);
 
-//タッチスイッチの設定
+  //タッチスイッチの設定
   pinMode(TOUCH_SWITCH_PIN,INPUT);
 
-//UDP通信設定
+  //UDP通信設定
   udp0.set_udp(esp_ssid,esp_pass);
 
   //timer割り込み設定
@@ -70,6 +66,7 @@ void setup() {
   timerAlarmWrite(timer, (int)(Ts*1000000), true);//Ts[s]ごとに割り込みが入るように設定
   timerAlarmEnable(timer);//有効化
 }
+
 void loop() {
 
   //udp受信
@@ -82,6 +79,7 @@ void loop() {
     for(int i=0;i<MOTOR_NUM;i++){
       motor[i].get_angle(motor[i].state.q);  
     }
+    //角速度計算
     for(int i=0;i<MOTOR_NUM;i++){
       dtheta_st[i].update(motor[i].state.q,motor[i].state.dq);  
     }
@@ -89,13 +87,14 @@ void loop() {
     touch_switch = digitalRead(TOUCH_SWITCH_PIN);  
     //------------------------------------------------------------------------------------//
     
-    //目標値計算
+    //目標値計算----------------------------------------------------------------------------//
     wave0.update();
     wave_pwm.update();
     motor[0].ref.q = wave0.output;
     dtheta_ref[0].update(motor[0].ref.q,motor[0].ref.dq);
-  
-    //出力計算
+    //-----------------------------------------------------------------------------------//
+    
+    //出力計算----------------------------------------------------------------------------//
     double u = motor[0].position_control();//pid位置制御
 //    double u = wave_pwm.output;
 
@@ -108,22 +107,20 @@ void loop() {
     else if( c=='e'){
       u = 0.0;
     }
-//    u = -0.5;
-//    motor[0].drive(u);
     motor[0].drive(u);
-//    motor[0].drive(wave0.output);
-
+    
 //  udp0.send_char(',');
 //  delay(100);
+//-----------------------------------------------------------------------------------//
       
-#if DEBUG
+#if DEBUG//グラフで確認用
     for(int i=0;i<MOTOR_NUM;i++){
       Serial.print(motor[i].ref.q * RAD2DEG);
       Serial.print(",");
       Serial.print(motor[i].state.q * RAD2DEG);     
       Serial.print(",");
-      Serial.print(u);     
-
+      Serial.print(u);
+      Serial.print(",");  
 //      Serial.print(touch_switch);      
     }
     Serial.println();
