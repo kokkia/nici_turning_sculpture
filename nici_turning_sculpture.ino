@@ -125,7 +125,7 @@ void loop() {
       if(touch_switch==1){//タッチスイッチが押されたら
         u = 0.0;
         state = DRIVING_STATE;//運転stateに移行
-        turn_direction_state=CCW;
+        turn_direction_state=CCW;//逆回転モード設定
         offset_angle = -motor[0].state.q+PI/3.0+AMP;//motorの角度設定を変更
         Serial.println("Start Driving");
       }
