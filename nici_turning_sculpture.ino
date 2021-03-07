@@ -1,10 +1,18 @@
 #include "kal/kal.h"
 #define DEBUG 1
 
+//nici 設定パラメータ
+#define V_NORMAL 3.0//motorにかける電圧[V](motorの回転速度)
+#define MAX_ANGLE 90.0//最大角度(ライトの振幅)[度]
+
+//kal zone --------------------------------------------------------------------------------//
 //状態管理
 #define INITIALIZE_STATE 0
 #define DRIVING_STATE 1
 int state = INITIALIZE_STATE;
+double offset_angle = 0.0;
+double angle = 0.0;
+#define AMP (MAX_ANGLE*DEG2RAD)//回転の振幅[度]
 
 //回転方向のstate
 #define CW 0//順回転
@@ -23,8 +31,8 @@ kal::Diff<double> dtheta_st[MOTOR_NUM];
 kal::Diff<double> dtheta_ref[MOTOR_NUM];
 
 //touch switchタッチスイッチの定義
-bool touch_switch = 0;
 #define TOUCH_SWITCH_PIN GPIO_NUM_32
+bool touch_switch = 0;
 
 //udp通信の定義
 kal::udp_for_esp32<kal::q_data> udp0(ISOLATED_NETWORK);
@@ -39,13 +47,15 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 void IRAM_ATTR onTimer() {//時間計測
   portENTER_CRITICAL_ISR(&timerMux);
-  //control----------------------------------------------------------------------------//
+  //control----------------------------------------//
   t += Ts;
   timer_flag = 1; 
-  //-----------------------------------------------------------------------------------//
+  //-----------------------------------------------//
   portEXIT_CRITICAL_ISR(&timerMux);
 }
+//kal zone end ------------------------------------------------------------------------//
 
+//初期設定
 void setup() {
   Serial.begin(115200);
   Serial.println("start");
@@ -73,8 +83,11 @@ void setup() {
   timerAttachInterrupt(timer, &onTimer, true);//割り込み関数指定
   timerAlarmWrite(timer, (int)(Ts*1000000), true);//Ts[s]ごとに割り込みが入るように設定
   timerAlarmEnable(timer);//有効化
+
+  delay(1000);
 }
 
+//制御
 void loop() {
 
   //udp受信
@@ -82,43 +95,60 @@ void loop() {
   if(timer_flag){//制御周期
     timer_flag = 0;
 
-    //センサの値取得---------------------------------------------------------------------------//
+    //センサの値取得------------------------------------------------------------------------//
     //角度センサ
     for(int i=0;i<MOTOR_NUM;i++){
       motor[i].get_angle(motor[i].state.q);  
     }
+    angle = motor[0].state.q + offset_angle;
     //角速度計算
     for(int i=0;i<MOTOR_NUM;i++){
       dtheta_st[i].update(motor[i].state.q,motor[i].state.dq);  
     }
     //タッチスイッチの値取得 1:pushed, 0:not pushed
     touch_switch = digitalRead(TOUCH_SWITCH_PIN);  
-    //------------------------------------------------------------------------------------//
+    //-----------------------------------------------------------------------------------//
     
-    //目標値計算----------------------------------------------------------------------------//
+    //目標値計算---------------------------------------------------------------------------//
     wave0.update();
     motor[0].ref.q = wave0.output;
     dtheta_ref[0].update(motor[0].ref.q,motor[0].ref.dq);
     //-----------------------------------------------------------------------------------//
     
-    //kiriko mitani zone
+    //kiriko mitani zone ----------------------------------------------------------------//
     double u = 0.0;//u:motor power[v]
-    if(state==INITIALIZE_STATE){//初期位置設定state
-      
-    }
-    else if(state==DRIVING_STATE){//運転中state
 
-
-
-
-
-
-
-      //u:motor powerに値を入れてください
+    //初期位置設定state
+    if(state==INITIALIZE_STATE){
+      Serial.println("Initializing");
+      u = V_NORMAL;//タッチスイッチの位置まで回転
+      if(touch_switch==1){//タッチスイッチが押されたら
+        u = 0.0;
+        state = DRIVING_STATE;//運転stateに移行
+        turn_direction_state=CCW;
+        offset_angle = -motor[0].state.q+PI/3.0+AMP;//motorの角度設定を変更
+        Serial.println("Start Driving");
+      }
     }
     
-
-    //koriko mitani zone end
+    //運転中state
+    else if(state==DRIVING_STATE){
+      if(turn_direction_state==CW){//順方向回転モード
+        Serial.println("CW");
+        u = V_NORMAL;//順方向回転
+        if(angle>AMP){//角度が振幅より大きくなったら逆回転モード
+          turn_direction_state=CCW;
+        }
+      }
+      else if(turn_direction_state==CCW){//逆方向回転モード
+        Serial.println("CCW");
+        u = -V_NORMAL;//逆回転
+        if(angle<-AMP){//角度が振幅より大きくなったら逆回転モード
+          turn_direction_state=CW;
+        }
+      }
+    }
+    //koriko mitani zone end -------------------------------------------------------------//
     
     //wifi制御
     if( c=='o' ){
@@ -129,8 +159,8 @@ void loop() {
     }
     else if( c=='e'){
       u = 0.0;    }
-    //motor回転
-    motor[0].drive(u);
+    
+    motor[0].drive(u);//motorへ決定した電圧を出力
     
 //  udp0.send_char(',');
 //  delay(100);
@@ -138,12 +168,11 @@ void loop() {
       
 #if DEBUG//グラフで確認用
     for(int i=0;i<MOTOR_NUM;i++){
-      Serial.print(motor[i].ref.q * RAD2DEG);
-      Serial.print(",");
-      Serial.print(motor[i].state.q * RAD2DEG);     
-      Serial.print(",");
-//      Serial.print(u);
-//      Serial.print(",");    
+//      Serial.print(motor[i].ref.q * RAD2DEG);
+//      Serial.print(",");
+//      Serial.print(motor[i].state.q * RAD2DEG);  
+      Serial.print(angle * RAD2DEG);     
+      Serial.print(",");    
 //      Serial.print(touch_switch);      
     }
     Serial.println();
