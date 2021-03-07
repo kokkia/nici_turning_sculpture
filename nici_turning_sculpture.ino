@@ -1,10 +1,18 @@
 #include "kal/kal.h"
 #define DEBUG 1
 
+//状態管理
+#define INITIALIZE_STATE 0
+#define DRIVING_STATE 1
+int state = INITIALIZE_STATE;
+
+//回転方向のstate
+#define CW 0//順回転
+#define CCW 1//逆回転
+int turn_direction_state = CW;
+
 //waveの形定義
-kal::wave wave0(0.0,PI/2,1.0/360.0,TRIANGLE);
-//kal::wave wave0(0.0,PI/6,1.0/60.0,TRIANGLE);
-kal::wave wave_pwm(0.0,3.0,0.1,SIN);
+kal::wave wave0(0.0,PI/2,1.0/360.0,0.0,TRIANGLE);
 
 //motorの定義
 #define MOTOR_NUM 1
@@ -40,13 +48,13 @@ void IRAM_ATTR onTimer() {//時間計測
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("started");
+  Serial.println("start");
   
   //motor1の設定
   motor[0].GPIO_setup(GPIO_NUM_25,GPIO_NUM_26);//方向制御ピン設定
   motor[0].PWM_setup(GPIO_NUM_12,0,50000,10);//PWMピン設定
   motor[0].encoder_setup(PCNT_UNIT_0,GPIO_NUM_39,GPIO_NUM_36);//エンコーダカウンタ設定
-  motor[0].set_fb_param(40,0.0,5.0);
+  motor[0].set_fb_param(20.0,0.0,0.5);
 
 //  //motor2 2個目のモータを使う場合
 //  motor[1].GPIO_setup(GPIO_NUM_16,GPIO_NUM_17);//方向制御ピン設定
@@ -89,15 +97,30 @@ void loop() {
     
     //目標値計算----------------------------------------------------------------------------//
     wave0.update();
-    wave_pwm.update();
     motor[0].ref.q = wave0.output;
     dtheta_ref[0].update(motor[0].ref.q,motor[0].ref.dq);
     //-----------------------------------------------------------------------------------//
     
-    //出力計算----------------------------------------------------------------------------//
-    double u = motor[0].position_control();//pid位置制御
-//    double u = wave_pwm.output;
+    //kiriko mitani zone
+    double u = 0.0;//u:motor power[v]
+    if(state==INITIALIZE_STATE){//初期位置設定state
+      
+    }
+    else if(state==DRIVING_STATE){//運転中state
 
+
+
+
+
+
+
+      //u:motor powerに値を入れてください
+    }
+    
+
+    //koriko mitani zone end
+    
+    //wifi制御
     if( c=='o' ){
       u = 2.0;
     }
@@ -105,8 +128,8 @@ void loop() {
       u = -2.0;
     }
     else if( c=='e'){
-      u = 0.0;
-    }
+      u = 0.0;    }
+    //motor回転
     motor[0].drive(u);
     
 //  udp0.send_char(',');
@@ -119,15 +142,13 @@ void loop() {
       Serial.print(",");
       Serial.print(motor[i].state.q * RAD2DEG);     
       Serial.print(",");
-      Serial.print(u);
-      Serial.print(",");  
+//      Serial.print(u);
+//      Serial.print(",");    
 //      Serial.print(touch_switch);      
     }
     Serial.println();
 #endif
-
   }//制御周期
   else{//その他の処理
-    
   }
 }
