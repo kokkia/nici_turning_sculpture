@@ -1,9 +1,29 @@
 #include "kal/kal.h"
 #define DEBUG 1
 
+//ROLL, PITCH, YAWの装置選択
+//#define ROLL
+#define PITCH
+//#define YAW
+
+//mode設定
+#define PID_MODE//精密制御モード
+
 //nici 設定パラメータ
-#define V_NORMAL 3.0//motorにかける電圧[V](motorの回転速度)
+#ifdef ROLL//ROLL のパラメータ
+#define V_NORMAL 1.2//motorにかける電圧[V](motorの回転速度)
 #define MAX_ANGLE 90.0//最大角度(ライトの振幅)[度]
+#define LIMIT (DEG2RAD*30)//限界位置
+//waveの形定義
+kal::wave wave0(0.0,PI/2,1.0/180.0,-PI/2.0,TRIANGLE);
+
+#elif defined PITCH//PITCH のパラメータ
+#define V_NORMAL 1.0//motorにかける電圧[V](motorの回転速度)
+#define MAX_ANGLE 20.0//最大角度(ライトの振幅)[度]
+#define LIMIT (DEG2RAD*10)//限界位置
+//waveの形定義
+kal::wave wave0(0.0,PI/8,1.0/90.0,-PI/2.0,TRIANGLE);
+#endif
 
 //kal zone --------------------------------------------------------------------------------//
 //状態管理
@@ -12,15 +32,12 @@
 int state = INITIALIZE_STATE;
 double offset_angle = 0.0;
 double angle = 0.0;
-#define AMP (MAX_ANGLE*DEG2RAD)//回転の振幅[度]
+#define AMP (MAX_ANGLE*DEG2RAD)//回転の振幅[rad]
 
 //回転方向のstate
 #define CW 0//順回転
 #define CCW 1//逆回転
 int turn_direction_state = CW;
-
-//waveの形定義
-kal::wave wave0(0.0,PI/2,1.0/360.0,0.0,TRIANGLE);
 
 //motorの定義
 #define MOTOR_NUM 1
@@ -64,7 +81,13 @@ void setup() {
   motor[0].GPIO_setup(GPIO_NUM_25,GPIO_NUM_26);//方向制御ピン設定
   motor[0].PWM_setup(GPIO_NUM_12,0,50000,10);//PWMピン設定
   motor[0].encoder_setup(PCNT_UNIT_0,GPIO_NUM_39,GPIO_NUM_36);//エンコーダカウンタ設定
-  motor[0].set_fb_param(20.0,0.0,0.5);
+#ifdef ROLL
+  motor[0].set_fb_param(40.0,0.3,1.5);//PID制御のパラメータ設定
+  motor[0].set_ff_param(0.0,0.0,0.0,0.0);//FF制御のパラメータ設定
+#elif defined PITCH
+  motor[0].set_fb_param(50.0,0.0,3.5);
+  motor[0].set_ff_param(0.0,0.0,0.0,0.78);
+#endif
 
 //  //motor2 2個目のモータを使う場合
 //  motor[1].GPIO_setup(GPIO_NUM_16,GPIO_NUM_17);//方向制御ピン設定
@@ -109,30 +132,35 @@ void loop() {
     touch_switch = digitalRead(TOUCH_SWITCH_PIN);  
     //-----------------------------------------------------------------------------------//
     
-    //目標値計算---------------------------------------------------------------------------//
-    wave0.update();
-    motor[0].ref.q = wave0.output;
-    dtheta_ref[0].update(motor[0].ref.q,motor[0].ref.dq);
-    //-----------------------------------------------------------------------------------//
-    
     //kiriko mitani zone ----------------------------------------------------------------//
     double u = 0.0;//u:motor power[v]
 
     //初期位置設定state
     if(state==INITIALIZE_STATE){
       Serial.println("Initializing");
-      u = V_NORMAL;//タッチスイッチの位置まで回転
+      u = -V_NORMAL;//タッチスイッチの位置まで回転
       if(touch_switch==1){//タッチスイッチが押されたら
         u = 0.0;
         state = DRIVING_STATE;//運転stateに移行
-        turn_direction_state=CCW;//逆回転モード設定
-        offset_angle = -motor[0].state.q+PI/3.0+AMP;//motorの角度設定を変更
+        turn_direction_state=CW;//逆回転モード設定
+        offset_angle = -motor[0].state.q-LIMIT-AMP;//motorの角度設定を変更
+        wave0.ave = motor[0].state.q + wave0.amp + LIMIT;
         Serial.println("Start Driving");
       }
     }
     
     //運転中state
     else if(state==DRIVING_STATE){
+#ifdef PID_MODE
+      //目標値計算---------------------------------------------------------------------------//
+      wave0.update();
+      motor[0].ref.q = wave0.output;
+      dtheta_ref[0].update(motor[0].ref.q,motor[0].ref.dq);
+      //-----------------------------------------------------------------------------------//
+      //出力計算----------------------------------------------------------------------------//
+      u = motor[0].two_dof_control();
+      //-----------------------------------------------------------------------------------//
+#else
       if(turn_direction_state==CW){//順方向回転モード
         Serial.println("CW");
         u = V_NORMAL;//順方向回転
@@ -147,6 +175,7 @@ void loop() {
           turn_direction_state=CW;
         }
       }
+#endif
     }
     //koriko mitani zone end -------------------------------------------------------------//
     
@@ -168,10 +197,13 @@ void loop() {
       
 #if DEBUG//グラフで確認用
     for(int i=0;i<MOTOR_NUM;i++){
-//      Serial.print(motor[i].ref.q * RAD2DEG);
-//      Serial.print(",");
-//      Serial.print(motor[i].state.q * RAD2DEG);  
+#ifdef PID_MODE
+      Serial.print(motor[i].ref.q * RAD2DEG);
+      Serial.print(",");
+      Serial.print(motor[i].state.q * RAD2DEG); 
+#else 
       Serial.print(angle * RAD2DEG);     
+#endif
       Serial.print(",");    
 //      Serial.print(touch_switch);      
     }
