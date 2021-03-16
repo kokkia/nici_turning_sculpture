@@ -1,7 +1,7 @@
 #include "kal/kal.h"
 #define DEBUG 1
 
-//ROLL, PITCH, YAWの装置選択
+//ROLL, PITCH, YAWの装置選択,選択したtype以外をコメントアウト
 //#define ROLL
 #define PITCH
 //#define YAW
@@ -10,19 +10,26 @@
 #define PID_MODE//精密制御モード
 
 //nici 設定パラメータ
+//ROLL type------------------------------------------------------------------------------//
 #ifdef ROLL//ROLL のパラメータ
-#define V_NORMAL 1.2//motorにかける電圧[V](motorの回転速度)
+//基本的にこの2つだけで調整できる
 #define MAX_ANGLE 90.0//最大角度(ライトの振幅)[度]
-#define LIMIT (DEG2RAD*30)//限界位置
-//waveの形定義
-kal::wave wave0(0.0,PI/2,1.0/180.0,-PI/2.0,TRIANGLE);
+#define TIME 180.0//1往復にかかる時間[秒]
 
+//さらに細かい調整
+#define V_NORMAL 1.2//motorにかける電圧[V](motorの回転速度)
+#define LIMIT (DEG2RAD*30)//ライトの振れ幅の最低点とスイッチの距離
+kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
+
+//PITCH type------------------------------------------------------------------------------//
 #elif defined PITCH//PITCH のパラメータ
-#define V_NORMAL 1.0//motorにかける電圧[V](motorの回転速度)
+//基本的にこの2つだけで調整できる
 #define MAX_ANGLE 20.0//最大角度(ライトの振幅)[度]
-#define LIMIT (DEG2RAD*10)//限界位置
-//waveの形定義
-kal::wave wave0(0.0,PI/8,1.0/90.0,-PI/2.0,TRIANGLE);
+#define TIME 90.0//1往復にかかる時間[秒]
+//さらに細かい調整
+#define V_NORMAL 1.0//motorにかける電圧[V](motorの回転速度)
+#define LIMIT (DEG2RAD*10)//ライトの振れ幅の最低点とスイッチの距離
+kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 #endif
 
 //kal zone --------------------------------------------------------------------------------//
@@ -85,8 +92,8 @@ void setup() {
   motor[0].set_fb_param(40.0,0.3,1.5);//PID制御のパラメータ設定
   motor[0].set_ff_param(0.0,0.0,0.0,0.0);//FF制御のパラメータ設定
 #elif defined PITCH
-  motor[0].set_fb_param(50.0,0.0,3.5);
-  motor[0].set_ff_param(0.0,0.0,0.0,0.78);
+  motor[0].set_fb_param(50.0,0.0,3.5);//PID制御のパラメータ設定
+  motor[0].set_ff_param(0.0,0.0,0.0,0.78);//FF制御のパラメータ設定
 #endif
 
 //  //motor2 2個目のモータを使う場合
