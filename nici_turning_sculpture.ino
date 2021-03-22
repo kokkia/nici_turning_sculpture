@@ -2,8 +2,8 @@
 #define DEBUG 1
 
 //ROLL, PITCH, YAWの装置選択,選択したtype以外をコメントアウト
-//#define ROLL
-#define PITCH
+#define ROLL
+//#define PITCH
 //#define YAW
 
 //mode設定
@@ -15,17 +15,26 @@
 //基本的にこの2つだけで調整できる
 #define MAX_ANGLE 90.0//最大角度(ライトの振幅)[度]
 #define TIME 180.0//1往復にかかる時間[秒]
-
 //さらに細かい調整
 #define V_NORMAL 1.2//motorにかける電圧[V](motorの回転速度)
-#define LIMIT (DEG2RAD*30)//ライトの振れ幅の最低点とスイッチの距離
+#define LIMIT (DEG2RAD*30)//ライトの振れ幅の最低点とスイッチの距離kirikomitani限界90[s]
 kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 
 //PITCH type------------------------------------------------------------------------------//
 #elif defined PITCH//PITCH のパラメータ
 //基本的にこの2つだけで調整できる
-#define MAX_ANGLE 30.0//最大角度(ライトの振幅)[度]
-#define TIME 60.0//1往復にかかる時間[秒]
+#define MAX_ANGLE 20.0//最大角度(ライトの振幅)[度]
+#define TIME 90.0//1往復にかかる時間[秒]kirikomitani限界90[s]
+//さらに細かい調整
+#define V_NORMAL 1.0//motorにかける電圧[V](motorの回転速度)
+#define LIMIT (DEG2RAD*10)//ライトの振れ幅の最低点とスイッチの距離
+kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
+
+//YAW type------------------------------------------------------------------------------//
+#elif defined YAW//PITCH のパラメータ
+//基本的にこの2つだけで調整できる
+#define MAX_ANGLE 60.0//最大角度(ライトの振幅)[度]
+#define TIME 90.0//1往復にかかる時間[秒]kirikomitani限界90[s]
 //さらに細かい調整
 #define V_NORMAL 1.5//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*10)//ライトの振れ幅の最低点とスイッチの距離
@@ -89,11 +98,17 @@ void setup() {
   motor[0].PWM_setup(GPIO_NUM_12,0,50000,10);//PWMピン設定
   motor[0].encoder_setup(PCNT_UNIT_0,GPIO_NUM_39,GPIO_NUM_36);//エンコーダカウンタ設定
 #ifdef ROLL
-  motor[0].set_fb_param(40.0,0.3,1.5);//PID制御のパラメータ設定
-  motor[0].set_ff_param(0.0,0.0,0.0,0.0);//FF制御のパラメータ設定
+  motor[0].set_fb_param(40.0,0.0,2.0);//PID制御のパラメータ設定
+  motor[0].set_ff_param(0.0,0.0,0.0,0.78);//FF制御のパラメータ設定
+  Serial.println("ROLL");
 #elif defined PITCH
   motor[0].set_fb_param(50.0,0.0,3.5);//PID制御のパラメータ設定
   motor[0].set_ff_param(0.0,0.0,0.0,0.78);//FF制御のパラメータ設定
+  Serial.println("PITCH");
+#elif defined YAW
+  motor[0].set_fb_param(50.0,0.0,3.5);//PID制御のパラメータ設定
+  motor[0].set_ff_param(0.0,0.0,0.0,0.78);//FF制御のパラメータ設定
+  Serial.println("YAW");
 #endif
 
 //  //motor2 2個目のモータを使う場合
@@ -113,6 +128,7 @@ void setup() {
   timerAttachInterrupt(timer, &onTimer, true);//割り込み関数指定
   timerAlarmWrite(timer, (int)(Ts*1000000), true);//Ts[s]ごとに割り込みが入るように設定
   timerAlarmEnable(timer);//有効化
+
 
   delay(1000);
 }
@@ -204,6 +220,8 @@ void loop() {
       
 #if DEBUG//グラフで確認用
     for(int i=0;i<MOTOR_NUM;i++){
+      Serial.print(u);
+      Serial.print(",");
 #ifdef PID_MODE
       Serial.print(motor[i].ref.q * RAD2DEG);
       Serial.print(",");
