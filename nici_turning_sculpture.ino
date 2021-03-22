@@ -24,10 +24,10 @@ kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 //PITCH type------------------------------------------------------------------------------//
 #elif defined PITCH//PITCH のパラメータ
 //基本的にこの2つだけで調整できる
-#define MAX_ANGLE 20.0//最大角度(ライトの振幅)[度]
-#define TIME 90.0//1往復にかかる時間[秒]
+#define MAX_ANGLE 30.0//最大角度(ライトの振幅)[度]
+#define TIME 60.0//1往復にかかる時間[秒]
 //さらに細かい調整
-#define V_NORMAL 1.0//motorにかける電圧[V](motorの回転速度)
+#define V_NORMAL 1.5//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*10)//ライトの振れ幅の最低点とスイッチの距離
 kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 #endif
