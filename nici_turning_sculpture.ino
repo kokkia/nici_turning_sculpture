@@ -13,8 +13,8 @@
 //ROLL type------------------------------------------------------------------------------//
 #ifdef ROLL//ROLL のパラメータ
 //基本的にこの2つだけで調整できる
-#define MAX_ANGLE 90.0//最大角度(ライトの振幅)[度]
-#define TIME 180.0//1往復にかかる時間[秒]
+#define MAX_ANGLE 120.0//最大角度(ライトの振幅)[度]
+#define TIME 240.0//1往復にかかる時間[秒]
 //さらに細かい調整
 #define V_NORMAL 1.2//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*30)//ライトの振れ幅の最低点とスイッチの距離kirikomitani限界90[s]
