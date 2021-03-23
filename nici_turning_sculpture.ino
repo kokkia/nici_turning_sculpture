@@ -2,8 +2,8 @@
 #define DEBUG 1
 
 //ROLL, PITCH, YAWの装置選択,選択したtype以外をコメントアウト
-#define ROLL
-//#define PITCH
+//#define ROLL
+#define PITCH
 //#define YAW
 
 //mode設定
@@ -27,7 +27,7 @@ kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 #define TIME 90.0//1往復にかかる時間[秒]kirikomitani限界90[s]
 //さらに細かい調整
 #define V_NORMAL 1.0//motorにかける電圧[V](motorの回転速度)
-#define LIMIT (DEG2RAD*10)//ライトの振れ幅の最低点とスイッチの距離
+#define LIMIT (DEG2RAD*5)//ライトの振れ幅の最低点とスイッチの距離
 kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 
 //YAW type------------------------------------------------------------------------------//
