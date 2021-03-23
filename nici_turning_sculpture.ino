@@ -167,7 +167,11 @@ void loop() {
         state = DRIVING_STATE;//運転stateに移行
         turn_direction_state=CW;//逆回転モード設定
         offset_angle = -motor[0].state.q-LIMIT-AMP;//motorの角度設定を変更
+#ifdef YAW
+        wave0.ave = motor[0].state.q - wave0.amp - LIMIT;
+#else
         wave0.ave = motor[0].state.q + wave0.amp + LIMIT;
+#endif
         Serial.println("Start Driving");
       }
     }
