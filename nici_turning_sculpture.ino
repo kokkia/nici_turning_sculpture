@@ -15,6 +15,8 @@ int stop_cnt = 0;
 
 //mode設定
 #define PID_MODE//精密制御モード
+kal::LPF<double> lpf(0.0,0.1);//目標値にLPFかけて滑らかにする
+double ref_lpf = 0.0;
 
 //nici 設定パラメータ
 //ROLL type------------------------------------------------------------------------------//
@@ -31,7 +33,7 @@ kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 #elif defined PITCH//PITCH のパラメータ
 //基本的にこの2つだけで調整できる
 #define MAX_ANGLE 20.0//最大角度(ライトの振幅)[度]
-#define TIME 90.0//1往復にかかる時間[秒]kirikomitani限界90[s]
+#define TIME 70.0//1往復にかかる時間[秒]kirikomitani限界90[s]
 //さらに細かい調整
 #define V_NORMAL 1.0//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*5)//ライトの振れ幅の最低点とスイッチの距離
@@ -58,8 +60,6 @@ int state = INITIALIZE_STATE;
 double offset_angle = 0.0;
 double angle = 0.0;
 #define AMP (MAX_ANGLE*DEG2RAD)//回転の振幅[rad]
-kal::LPF<double> lpf(0.0,0.1);//目標値にLPFかけて滑らかにする
-double ref_lpf = 0.0;
 
 //回転方向のstate
 #define CW 0//順回転
@@ -184,6 +184,8 @@ void loop() {
         state = DRIVING_STATE;//運転stateに移行
         turn_direction_state=CW;//逆回転モード設定
         offset_angle = -motor[0].state.q-LIMIT-AMP;//motorの角度設定を変更
+        lpf.y = motor[0].state.q;
+        lpf.x = motor[0].state.q;
 #ifdef YAW
         wave0.ave = motor[0].state.q - wave0.amp - LIMIT;
 #else
@@ -260,8 +262,8 @@ void loop() {
       
 #if DEBUG//グラフで確認用
     for(int i=0;i<MOTOR_NUM;i++){
-      Serial.print(t);
-      Serial.print(",");
+//      Serial.print(t);
+//      Serial.print(",");
 #ifdef PID_MODE
       Serial.print((motor[i].ref.q-wave0.ave) * RAD2DEG);
       Serial.print(",");
