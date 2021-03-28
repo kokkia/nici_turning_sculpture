@@ -7,7 +7,7 @@
 //#define YAW
 
 //mode設定
-#define PID_MODE//精密制御モード
+//#define PID_MODE//精密制御モード
 
 //nici 設定パラメータ
 //ROLL type------------------------------------------------------------------------------//
@@ -31,14 +31,14 @@ kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 
 //YAW type------------------------------------------------------------------------------//
-#elif defined YAW//YAW のパラメータ
+#elif defined YAW//PITCH のパラメータ
 //基本的にこの2つだけで調整できる
 #define MAX_ANGLE 60.0//最大角度(ライトの振幅)[度]
 #define TIME 90.0//1往復にかかる時間[秒]kirikomitani限界90[s]
 //さらに細かい調整
-#define V_NORMAL -1.5//motorにかける電圧[V](motorの回転速度)
+#define V_NORMAL 1.5//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*10)//ライトの振れ幅の最低点とスイッチの距離
-kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,PI/2.0,TRIANGLE);
+kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 #endif
 
 //kal zone --------------------------------------------------------------------------------//
@@ -81,7 +81,7 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 void IRAM_ATTR onTimer() {//時間計測
   portENTER_CRITICAL_ISR(&timerMux);
   //control----------------------------------------//
-  t += Ts;
+//  t += Ts;
   timer_flag = 1; 
   //-----------------------------------------------//
   portEXIT_CRITICAL_ISR(&timerMux);
@@ -167,11 +167,7 @@ void loop() {
         state = DRIVING_STATE;//運転stateに移行
         turn_direction_state=CW;//逆回転モード設定
         offset_angle = -motor[0].state.q-LIMIT-AMP;//motorの角度設定を変更
-#ifdef YAW
-        wave0.ave = motor[0].state.q - wave0.amp - LIMIT;
-#else
         wave0.ave = motor[0].state.q + wave0.amp + LIMIT;
-#endif
         Serial.println("Start Driving");
       }
     }
