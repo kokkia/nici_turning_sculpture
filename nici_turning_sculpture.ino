@@ -3,8 +3,8 @@
 
 //ROLL, PITCH, YAWの装置選択,選択したtype以外をコメントアウト
 //#define ROLL
-#define PITCH
-// #define YAW
+//#define PITCH
+ #define YAW
 
 //一定時間リセットの設定
 #define RESET_TIME 3600.0
@@ -77,6 +77,7 @@ kal::Diff<double> dtheta_ref[MOTOR_NUM];
 //touch switchタッチスイッチの定義
 #define TOUCH_SWITCH_PIN GPIO_NUM_32
 bool touch_switch = 0;
+double initialized_time;
 
 //udp通信の定義
 kal::udp_for_esp32<kal::q_data> udp0(ISOLATED_NETWORK);
@@ -179,6 +180,7 @@ void loop() {
     if(state==INITIALIZE_STATE){
       Serial.println("Initializing");
       u = -V_NORMAL;//タッチスイッチの位置まで回転
+      initialized_time = t;
       if(touch_switch==1){//タッチスイッチが押されたら
         u = 0.0;
         state = DRIVING_STATE;//運転stateに移行
@@ -186,6 +188,7 @@ void loop() {
         offset_angle = -motor[0].state.q-LIMIT-AMP;//motorの角度設定を変更
         lpf.y = motor[0].state.q;
         lpf.x = motor[0].state.q;
+        initialized_time = t;
 #ifdef YAW
         wave0.ave = motor[0].state.q - wave0.amp - LIMIT;
 #else
@@ -247,6 +250,22 @@ void loop() {
 //  udp0.send_char(',');
 //  delay(100);
 //-----------------------------------------------------------------------------------//
+
+    //スイッチに当たった場合
+    if(touch_switch==1 && t>initialized_time+10.0){//タッチスイッチが押されたら
+        u = 0.0;
+        state = DRIVING_STATE;//運転stateに移行
+        turn_direction_state=CW;//逆回転モード設定
+        offset_angle = -motor[0].state.q-LIMIT-AMP;//motorの角度設定を変更
+        lpf.y = motor[0].state.q;
+        lpf.x = motor[0].state.q;
+        initialized_time = t;
+#ifdef YAW
+        wave0.ave = motor[0].state.q - wave0.amp - LIMIT;
+#else
+        wave0.ave = motor[0].state.q + wave0.amp + LIMIT;
+#endif
+      }
 
     //モーターの速度監視
     if(abs(motor[0].state.dq)<0.01){
