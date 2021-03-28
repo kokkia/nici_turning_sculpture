@@ -3,8 +3,15 @@
 
 //ROLL, PITCH, YAWの装置選択,選択したtype以外をコメントアウト
 //#define ROLL
-#define PITCH
-//#define YAW
+//#define PITCH
+#define YAW
+
+//一定時間リセットの設定
+#define RESET_TIME 3600.0
+//緊急停止の設定
+#define STOP_TIME 3.0
+#define EMERGENCY_COUNTER (STOP_TIME/Ts) 
+int stop_cnt = 0;
 
 //mode設定
 #define PID_MODE//精密制御モード
@@ -19,7 +26,7 @@
 #define V_NORMAL 1.2//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*30)//ライトの振れ幅の最低点とスイッチの距離kirikomitani限界90[s]
 kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
-
+//char ssid[] = "ROLL_wifi"; // SSID
 //PITCH type------------------------------------------------------------------------------//
 #elif defined PITCH//PITCH のパラメータ
 //基本的にこの2つだけで調整できる
@@ -29,26 +36,30 @@ kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 #define V_NORMAL 1.0//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*5)//ライトの振れ幅の最低点とスイッチの距離
 kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
-
+//char ssid[] = "PITCH_wifi"; // SSID
 //YAW type------------------------------------------------------------------------------//
 #elif defined YAW//YAW のパラメータ
 //基本的にこの2つだけで調整できる
 #define MAX_ANGLE 60.0//最大角度(ライトの振幅)[度]
-#define TIME 90.0//1往復にかかる時間[秒]kirikomitani限界90[s]
+#define TIME 60.0//1往復にかかる時間[秒]kirikomitani限界90[s]
 //さらに細かい調整
-#define V_NORMAL -1.5//motorにかける電圧[V](motorの回転速度)
-#define LIMIT (DEG2RAD*10)//ライトの振れ幅の最低点とスイッチの距離
+#define V_NORMAL -2.5//motorにかける電圧[V](motorの回転速度)
+#define LIMIT (DEG2RAD*30)//ライトの振れ幅の最低点とスイッチの距離
 kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,PI/2.0,TRIANGLE);
+//char ssid[] = "YAW_wifi"; // SSID
 #endif
 
 //kal zone --------------------------------------------------------------------------------//
 //状態管理
 #define INITIALIZE_STATE 0
 #define DRIVING_STATE 1
+#define EMERGENCY_STATE 2
 int state = INITIALIZE_STATE;
 double offset_angle = 0.0;
 double angle = 0.0;
 #define AMP (MAX_ANGLE*DEG2RAD)//回転の振幅[rad]
+kal::LPF<double> lpf(0.0,0.1);//目標値にLPFかけて滑らかにする
+double ref_lpf = 0.0;
 
 //回転方向のstate
 #define CW 0//順回転
@@ -129,7 +140,6 @@ void setup() {
   timerAlarmWrite(timer, (int)(Ts*1000000), true);//Ts[s]ごとに割り込みが入るように設定
   timerAlarmEnable(timer);//有効化
 
-
   delay(1000);
 }
 
@@ -140,6 +150,13 @@ void loop() {
   char c = udp0.receive_char();
   if(timer_flag){//制御周期
     timer_flag = 0;
+    if(t>=RESET_TIME){
+      t = 0.0;
+//      state=INITIALIZE_STATE;
+      if(state!=EMERGENCY_STATE){
+        ESP.restart(); 
+      }
+    }
 
     //センサの値取得------------------------------------------------------------------------//
     //角度センサ
@@ -181,7 +198,8 @@ void loop() {
 #ifdef PID_MODE
       //目標値計算---------------------------------------------------------------------------//
       wave0.update();
-      motor[0].ref.q = wave0.output;
+      lpf.update(wave0.output,ref_lpf);
+      motor[0].ref.q = ref_lpf;//wave0.output;
       dtheta_ref[0].update(motor[0].ref.q,motor[0].ref.dq);
       //-----------------------------------------------------------------------------------//
       //出力計算----------------------------------------------------------------------------//
@@ -215,25 +233,47 @@ void loop() {
     }
     else if( c=='e'){
       u = 0.0;    }
+
+    //緊急停止モード
+    if(state==EMERGENCY_STATE){
+      u = 0.0;
+      Serial.println("EMERGENCY_STATE");
+    }
     
     motor[0].drive(u);//motorへ決定した電圧を出力
     
 //  udp0.send_char(',');
 //  delay(100);
 //-----------------------------------------------------------------------------------//
+
+    //モーターの速度監視
+    if(abs(motor[0].state.dq)<0.01){
+      stop_cnt++;
+    }
+    else{
+      stop_cnt = 0;
+    }
+    if(stop_cnt>=EMERGENCY_COUNTER){
+      state = EMERGENCY_STATE;
+      stop_cnt = EMERGENCY_COUNTER;
+    }
       
 #if DEBUG//グラフで確認用
     for(int i=0;i<MOTOR_NUM;i++){
-      Serial.print(u);
+      Serial.print(t);
       Serial.print(",");
 #ifdef PID_MODE
-      Serial.print(motor[i].ref.q * RAD2DEG);
+      Serial.print((motor[i].ref.q-wave0.ave) * RAD2DEG);
       Serial.print(",");
-      Serial.print(motor[i].state.q * RAD2DEG); 
+      Serial.print((motor[i].state.q-wave0.ave) * RAD2DEG); 
 #else 
       Serial.print(angle * RAD2DEG);     
 #endif
-      Serial.print(",");    
+      Serial.print(",");
+      Serial.print(motor[i].state.dq);
+      Serial.print(",");
+      Serial.print(stop_cnt);
+      Serial.print(",");
 //      Serial.print(touch_switch);      
     }
     Serial.println();
