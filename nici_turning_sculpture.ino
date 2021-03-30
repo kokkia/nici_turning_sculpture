@@ -2,9 +2,9 @@
 #define DEBUG 1
 
 //ROLL, PITCH, YAWの装置選択,選択したtype以外をコメントアウト
-//#define ROLL
+#define ROLL
 //#define PITCH
- #define YAW
+//#define YAW
 
 //一定時間リセットの設定
 #define RESET_TIME 3600.0
@@ -25,7 +25,7 @@ double ref_lpf = 0.0;
 #define MAX_ANGLE 120.0//最大角度(ライトの振幅)[度]
 #define TIME 240.0//1往復にかかる時間[秒]
 //さらに細かい調整
-#define V_NORMAL 1.2//motorにかける電圧[V](motorの回転速度)
+#define V_NORMAL 2.0//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*30)//ライトの振れ幅の最低点とスイッチの距離kirikomitani限界90[s]
 kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 //char ssid[] = "ROLL_wifi"; // SSID
@@ -35,7 +35,7 @@ kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 #define MAX_ANGLE 20.0//最大角度(ライトの振幅)[度]
 #define TIME 70.0//1往復にかかる時間[秒]kirikomitani限界90[s]
 //さらに細かい調整
-#define V_NORMAL 1.0//motorにかける電圧[V](motorの回転速度)
+#define V_NORMAL 2.0//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*5)//ライトの振れ幅の最低点とスイッチの距離
 kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 //char ssid[] = "PITCH_wifi"; // SSID
@@ -45,7 +45,7 @@ kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 #define MAX_ANGLE 60.0//最大角度(ライトの振幅)[度]
 #define TIME 60.0//1往復にかかる時間[秒]kirikomitani限界90[s]
 //さらに細かい調整
-#define V_NORMAL -2.5//motorにかける電圧[V](motorの回転速度)
+#define V_NORMAL -3.5//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*30)//ライトの振れ幅の最低点とスイッチの距離
 kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,PI/2.0,TRIANGLE);
 //char ssid[] = "YAW_wifi"; // SSID
