@@ -80,7 +80,7 @@ bool touch_switch = 0;
 double initialized_time;
 
 //udp通信の定義
-kal::udp_for_esp32<kal::q_data> udp0(ISOLATED_NETWORK);
+//kal::udp_for_esp32<kal::q_data> udp0(ISOLATED_NETWORK);
 
 //時間管理
 double t = 0.0;//time
@@ -123,17 +123,11 @@ void setup() {
   Serial.println("YAW");
 #endif
 
-//  //motor2 2個目のモータを使う場合
-//  motor[1].GPIO_setup(GPIO_NUM_16,GPIO_NUM_17);//方向制御ピン設定
-//  motor[1].PWM_setup(GPIO_NUM_15,0);//PWMピン設定
-//  motor[1].encoder_setup(PCNT_UNIT_1,GPIO_NUM_34,GPIO_NUM_35);//エンコーダカウンタ設定
-//  motor[1].set_fb_param(30,0.0,5.0);
-
   //タッチスイッチの設定
   pinMode(TOUCH_SWITCH_PIN,INPUT);
 
   //UDP通信設定
-  udp0.set_udp(esp_ssid,esp_pass);
+//  udp0.set_udp(esp_ssid,esp_pass);
 
   //timer割り込み設定
   timer = timerBegin(0, 80, true);//プリスケーラ設定
@@ -148,7 +142,7 @@ void setup() {
 void loop() {
 
   //udp受信
-  char c = udp0.receive_char();
+//  char c = udp0.receive_char();
   if(timer_flag){//制御周期
     timer_flag = 0;
     if(t>=RESET_TIME){
@@ -229,15 +223,15 @@ void loop() {
     }
     //koriko mitani zone end -------------------------------------------------------------//
     
-    //wifi制御
-    if( c=='o' ){
-      u = 2.0;
-    }
-    else if( c=='c'){
-      u = -2.0;
-    }
-    else if( c=='e'){
-      u = 0.0;    }
+//    //wifi制御
+//    if( c=='o' ){
+//      u = 2.0;
+//    }
+//    else if( c=='c'){
+//      u = -2.0;
+//    }
+//    else if( c=='e'){
+//      u = 0.0;    }
 
     //緊急停止モード
     if(state==EMERGENCY_STATE){
