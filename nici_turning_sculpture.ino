@@ -2,9 +2,9 @@
 #define DEBUG 1
 
 //ROLL, PITCH, YAWの装置選択,選択したtype以外をコメントアウト
-#define ROLL
+//#define ROLL
 //#define PITCH
-//#define YAW
+#define YAW
 
 //一定時間リセットの設定
 #define RESET_TIME 3600.0
@@ -15,7 +15,7 @@ int stop_cnt = 0;
 
 //mode設定
 #define PID_MODE//精密制御モード
-kal::LPF<double> lpf(0.0,0.1);//目標値にLPFかけて滑らかにする
+kal::LPF<double> lpf(0.0,0.5);//目標値にLPFかけて滑らかにする
 double ref_lpf = 0.0;
 
 //nici 設定パラメータ
@@ -45,7 +45,7 @@ kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 #define MAX_ANGLE 60.0//最大角度(ライトの振幅)[度]
 #define TIME 60.0//1往復にかかる時間[秒]kirikomitani限界90[s]
 //さらに細かい調整
-#define V_NORMAL -3.5//motorにかける電圧[V](motorの回転速度)
+#define V_NORMAL -4.2//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*30)//ライトの振れ幅の最低点とスイッチの距離
 kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,PI/2.0,TRIANGLE);
 //char ssid[] = "YAW_wifi"; // SSID
@@ -118,8 +118,8 @@ void setup() {
   motor[0].set_ff_param(0.0,0.0,0.0,0.78);//FF制御のパラメータ設定
   Serial.println("PITCH");
 #elif defined YAW
-  motor[0].set_fb_param(50.0,0.0,3.5);//PID制御のパラメータ設定
-  motor[0].set_ff_param(0.0,0.0,0.0,0.78);//FF制御のパラメータ設定
+  motor[0].set_fb_param(45.0,0.0,3.5);//PID制御のパラメータ設定
+  motor[0].set_ff_param(0.0,0.0,0.0,3.0);//FF制御のパラメータ設定
   Serial.println("YAW");
 #endif
 
@@ -288,6 +288,8 @@ void loop() {
       Serial.print(motor[i].state.dq);
       Serial.print(",");
       Serial.print(stop_cnt);
+      Serial.print(",");
+      Serial.print(u);
       Serial.print(",");
 //      Serial.print(touch_switch);      
     }
