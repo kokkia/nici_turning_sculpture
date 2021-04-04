@@ -42,8 +42,8 @@ kal::wave wave0(0.0,MAX_ANGLE*DEG2RAD,1.0/TIME,-PI/2.0,TRIANGLE);
 //YAW type------------------------------------------------------------------------------//
 #elif defined YAW//YAW のパラメータ
 //基本的にこの2つだけで調整できる
-#define MAX_ANGLE 60.0//最大角度(ライトの振幅)[度]
-#define TIME 60.0//1往復にかかる時間[秒]kirikomitani限界90[s]
+#define MAX_ANGLE 80.0//最大角度(ライトの振幅)[度]
+#define TIME 80.0//1往復にかかる時間[秒]kirikomitani限界90[s]
 //さらに細かい調整
 #define V_NORMAL -4.2//motorにかける電圧[V](motorの回転速度)
 #define LIMIT (DEG2RAD*30)//ライトの振れ幅の最低点とスイッチの距離
